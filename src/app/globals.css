@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-950: #0a0a0b;
+  --color-ink-900: #111113;
+  --color-ink-850: #161618;
+  --color-ink-800: #1c1c1f;
+  --color-ink-700: #27272b;
+  --color-ink-600: #36363c;
+  --color-ink-500: #4a4a52;
+
+  --color-ivory-50: #f7f2e8;
+  --color-ivory-100: #efe8da;
+  --color-ivory-300: #cfc7b7;
+  --color-ivory-400: #b3ab9c;
+  --color-ivory-500: #8f887b;
+
+  --color-gold-200: #ecdcb6;
+  --color-gold-300: #e0c793;
+  --color-gold-400: #d1b076;
+  --color-gold-500: #b8955a;
+  --color-gold-600: #8f7142;
+
+  --color-rose-400: #d98b7e;
+  --color-sage-400: #9bb89f;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--color-ink-950);
+  color: var(--color-ivory-100);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-gold-400);
+  color: var(--color-ink-950);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold-300);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@utility container-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 80rem;
+  padding-inline: 1.25rem;
+  @media (width >= 640px) {
+    padding-inline: 2rem;
+  }
+}
+
+@utility card {
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklab, var(--color-ivory-50) 8%, transparent);
+  background: var(--color-ink-900);
+}
+
+@utility eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-gold-400);
+  font-weight: 500;
+}
+
+@media print {
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
