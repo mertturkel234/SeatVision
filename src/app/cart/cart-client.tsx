@@ -222,6 +222,7 @@ export function CartClient({
                       src={movie.posterUrl}
                       alt={movie.title}
                       fill
+                      sizes="48px"
                       className="object-cover"
                     />
                   )}

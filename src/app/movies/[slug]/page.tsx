@@ -56,6 +56,7 @@ export default async function MovieDetailPage({
                   src={movie.posterUrl}
                   alt={movie.title}
                   fill
+                  sizes="(max-width: 768px) 100vw, 320px"
                   className="object-cover brightness-95"
                   priority
                 />

@@ -210,6 +210,7 @@ export function DiscoverClient({ movies, screenings }: DiscoverClientProps) {
                           src={movie.posterUrl}
                           alt={movie.title}
                           fill
+                          sizes="(max-width: 768px) 100vw, 360px"
                           className="object-cover group-hover:scale-105 transition-transform duration-300 brightness-90"
                         />
                       ) : (

@@ -9,7 +9,7 @@ import {
   getAuditorium3DBounds,
   getViewFromSeatCamera,
   calculateRowElevation,
-  type Vector3D,
+  SCREEN_ELEVATION_Y_M,
 } from "@/lib/domain/geometry-3d";
 import {
   createAuditoriumMaterials,
@@ -23,15 +23,10 @@ import { seatPrice, formatMoneyOrUnknown } from "@/lib/domain/pricing";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Camera,
   RotateCcw,
   Compass,
   Eye,
-  Maximize2,
   Grid3X3,
-  Sparkles,
-  X,
-  Info,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -71,7 +66,10 @@ export function SeatMap3D({
   const [cameraMode, setCameraMode] = useState<CameraPreset>("overview");
   const [viewingSeat, setViewingSeat] = useState<Seat | null>(null);
 
-  // Three.js instances stored in refs to avoid re-initializing on simple state changes
+  // Pointer drag vs click detection refs
+  const pointerDownPosRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  // Three.js instances stored in refs
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -87,31 +85,43 @@ export function SeatMap3D({
   const camStartTargetRef = useRef(new THREE.Vector3());
   const camEndTargetRef = useRef(new THREE.Vector3());
   const transitionStartRef = useRef(0);
-  const transitionDurationRef = useRef(900); // ms
+  const transitionDurationRef = useRef(850); // ms
 
   // Calculate auditorium bounds
   const bounds = useMemo(() => getAuditorium3DBounds(auditorium), [auditorium]);
 
-  // Default camera positions
+  // Default camera positions optimized for clarity, presence, and comfortable seat sizing
   const defaultCameraSettings = useMemo(() => {
+    const rowCount = auditorium.geometry.rowOrder.length;
+    const midRowIndex = Math.max(0, Math.floor(rowCount / 2));
+    const midRowElevation = calculateRowElevation(midRowIndex);
+    const centerElevation = calculateRowElevation(Math.max(0, rowCount - 1)) * 0.45;
+
     return {
       overview: {
-        position: new THREE.Vector3(0, bounds.height * 1.6, bounds.maxZ + bounds.length * 0.45),
-        target: new THREE.Vector3(0, bounds.screenCenter.y * 0.6, bounds.center.z * 0.7),
+        // Elevated 3/4 isometric angle showing auditorium depth, curved screen, and individual seat rows
+        position: new THREE.Vector3(
+          bounds.width * 0.48,
+          bounds.height * 1.15 + 2.2,
+          bounds.maxZ + bounds.length * 0.16 + 1.2
+        ),
+        target: new THREE.Vector3(0, centerElevation + 0.6, bounds.center.z * 0.85),
       },
       topdown: {
-        position: new THREE.Vector3(0, bounds.height * 2.8, bounds.center.z),
+        // High above the center looking directly down, oriented with screen at the top
+        position: new THREE.Vector3(0, bounds.length * 1.28 + 3, bounds.center.z),
         target: new THREE.Vector3(0, 0, bounds.center.z),
       },
       screen: {
-        position: new THREE.Vector3(0, bounds.screenCenter.y + 1, -1),
-        target: new THREE.Vector3(0, calculateRowElevation(5) + 1, bounds.center.z),
+        // Immersive view from stage / screen center looking out across audience seats
+        position: new THREE.Vector3(0, SCREEN_ELEVATION_Y_M + 1.2, 1.2),
+        target: new THREE.Vector3(0, midRowElevation + 0.9, bounds.center.z * 1.05),
       },
     };
-  }, [bounds]);
+  }, [auditorium, bounds]);
 
   // Smooth camera animator function
-  const animateCameraTo = useCallback((newPos: THREE.Vector3, newTarget: THREE.Vector3, duration = 850) => {
+  const animateCameraTo = useCallback((newPos: THREE.Vector3, newTarget: THREE.Vector3, duration = 800) => {
     if (!cameraRef.current || !controlsRef.current) return;
     camStartPosRef.current.copy(cameraRef.current.position);
     camEndPosRef.current.copy(newPos);
@@ -142,7 +152,7 @@ export function SeatMap3D({
       const cam = getViewFromSeatCamera(auditorium, seat);
       const pos = new THREE.Vector3(cam.position.x, cam.position.y, cam.position.z);
       const target = new THREE.Vector3(cam.target.x, cam.target.y, cam.target.z);
-      animateCameraTo(pos, target, 950);
+      animateCameraTo(pos, target, 900);
       onRequestViewFromSeat?.(seat);
     },
     [auditorium, animateCameraTo, onRequestViewFromSeat]
@@ -152,26 +162,26 @@ export function SeatMap3D({
     handleSetPreset("overview");
   }, [handleSetPreset]);
 
-  // Initialize Three.js WebGL Scene
+  // Initialize Three.js WebGL Scene with refined lighting, tone mapping, and framing
   useEffect(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
-    // 1. Scene
+    // 1. Scene setup with soft linear atmospheric depth (replaces dense exponential fog)
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a0b); // deep charcoal background
-    scene.fog = new THREE.FogExp2(0x0a0a0b, 0.015);
+    scene.background = new THREE.Color(0x0c0d10);
+    scene.fog = new THREE.Fog(0x0c0d10, 45, 110);
     sceneRef.current = scene;
 
-    // 2. Camera
+    // 2. Camera setup with tailored FOV for balanced depth without wide-angle distortion
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 560;
-    const camera = new THREE.PerspectiveCamera(46, width / height, 0.2, 200);
+    const camera = new THREE.PerspectiveCamera(44, width / height, 0.2, 180);
     camera.position.copy(defaultCameraSettings.overview.position);
     cameraRef.current = camera;
 
-    // 3. Renderer
+    // 3. Renderer with ACES Filmic Tone Mapping and balanced exposure
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
@@ -180,7 +190,7 @@ export function SeatMap3D({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.32;
     rendererRef.current = renderer;
 
     // 4. Orbit Controls
@@ -189,30 +199,42 @@ export function SeatMap3D({
     controls.dampingFactor = 0.08;
     controls.target.copy(defaultCameraSettings.overview.target);
     controls.minDistance = 3;
-    controls.maxDistance = 55;
-    controls.minPolarAngle = 0.15;
-    controls.maxPolarAngle = 1.48; // Prevent camera from slipping under the floor!
+    controls.maxDistance = 50;
+    controls.minPolarAngle = 0.12;
+    controls.maxPolarAngle = 1.48; // Prevent camera from slipping under the floor
     controlsRef.current = controls;
 
     // 5. Materials
     const materials = createAuditoriumMaterials();
     materialsRef.current = materials;
 
-    // 6. Lighting
-    const ambientLight = new THREE.AmbientLight(0x38342c, 1.3);
+    // 6. Balanced Lighting System
+    // Ambient light: ensures all seats, steps, and walls are clearly readable
+    const ambientLight = new THREE.AmbientLight(0x605c56, 2.0);
     scene.add(ambientLight);
 
-    const hemiLight = new THREE.HemisphereLight(0xfff3db, 0x161618, 0.8);
-    scene.add(hemiLight);
+    // Screen projection wash: warm light washing audience rows from the screen
+    const screenWashLight = new THREE.DirectionalLight(0xfff5e6, 2.0);
+    screenWashLight.position.set(0, bounds.screenCenter.y + 0.5, 1.5);
+    screenWashLight.target.position.set(0, 1.2, bounds.center.z);
+    scene.add(screenWashLight);
+    scene.add(screenWashLight.target);
 
-    // Ceiling warm spotlight washing center seating
-    const ceilingSpot = new THREE.DirectionalLight(0xe8d5b5, 0.8);
-    ceilingSpot.position.set(0, bounds.height + 4, bounds.center.z);
-    ceilingSpot.target.position.set(0, 0, bounds.center.z);
-    scene.add(ceilingSpot);
-    scene.add(ceilingSpot.target);
+    // Overhead architectural light: gentle illumination highlighting seat cushions and aisles
+    const overheadLight = new THREE.DirectionalLight(0xe8dcc8, 1.35);
+    overheadLight.position.set(0, bounds.height + 6, bounds.center.z);
+    overheadLight.target.position.set(0, 0, bounds.center.z);
+    scene.add(overheadLight);
+    scene.add(overheadLight.target);
 
-    // 7. Architectural Geometry
+    // Rear rim/fill light: gives seat backs, headrests, and platforms crisp silhouette definition
+    const rearRimLight = new THREE.DirectionalLight(0x78869c, 0.85);
+    rearRimLight.position.set(0, bounds.height * 1.4, bounds.maxZ + 6);
+    rearRimLight.target.position.set(0, 1, bounds.center.z * 0.7);
+    scene.add(rearRimLight);
+    scene.add(rearRimLight.target);
+
+    // 7. Architectural Meshes
     const screenMesh = buildScreenMesh(bounds, materials);
     scene.add(screenMesh);
 
@@ -222,7 +244,7 @@ export function SeatMap3D({
     const enclosureMesh = buildEnclosureMesh(bounds, materials);
     scene.add(enclosureMesh);
 
-    // 8. Row Labels along the side walls
+    // 8. Row Labels along the side aisles
     auditorium.geometry.rowOrder.forEach((rowLabel, i) => {
       const elevation = calculateRowElevation(i);
       const rowSeats = auditorium.seats.filter((s) => s.row === rowLabel);
@@ -230,11 +252,11 @@ export function SeatMap3D({
       const avgZ = rowSeats.reduce((acc, s) => acc + (s.position?.y ?? 0), 0) / rowSeats.length;
 
       const leftLabel = createRowLabelSprite(rowLabel);
-      leftLabel.position.set(-bounds.width / 2 - 0.5, elevation + 0.6, avgZ);
+      leftLabel.position.set(-bounds.width / 2 - 0.55, elevation + 0.65, avgZ);
       scene.add(leftLabel);
 
       const rightLabel = createRowLabelSprite(rowLabel);
-      rightLabel.position.set(bounds.width / 2 + 0.5, elevation + 0.6, avgZ);
+      rightLabel.position.set(bounds.width / 2 + 0.55, elevation + 0.65, avgZ);
       scene.add(rightLabel);
     });
 
@@ -245,8 +267,6 @@ export function SeatMap3D({
     seatsGroupRef.current = seatsGroup;
 
     // 10. Animation Render Loop
-    const clock = new THREE.Clock();
-
     const animate = () => {
       animFrameRef.current = requestAnimationFrame(animate);
 
@@ -255,7 +275,6 @@ export function SeatMap3D({
         const now = performance.now();
         const elapsed = now - transitionStartRef.current;
         const progress = Math.min(1, elapsed / transitionDurationRef.current);
-        // Smooth easeInOutCubic
         const ease =
           progress < 0.5
             ? 4 * progress * progress * progress
@@ -295,7 +314,6 @@ export function SeatMap3D({
       resizeObserver.disconnect();
       controls.dispose();
       renderer.dispose();
-      // Dispose materials
       Object.values(materials).forEach((m) => m.dispose());
     };
   }, [auditorium, bounds, defaultCameraSettings]);
@@ -352,7 +370,6 @@ export function SeatMap3D({
       const intersects = raycaster.intersectObjects(seatsGroup.children, true);
 
       if (intersects.length > 0) {
-        // Find ancestor with userData.seat
         let obj: THREE.Object3D | null = intersects[0].object;
         while (obj && !obj.userData?.seat && obj !== seatsGroup) {
           obj = obj.parent;
@@ -385,9 +402,30 @@ export function SeatMap3D({
     }
   };
 
+  // Record down position to distinguish camera navigation drag from deliberate clicks
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    // Only handle primary left click
     if (e.button !== 0) return;
+    pointerDownPosRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: performance.now(),
+    };
+  };
+
+  // Only select seat if pointer did not drag across the canvas (camera rotation/pan prevention)
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.button !== 0 || !pointerDownPosRef.current) return;
+    const dx = e.clientX - pointerDownPosRef.current.x;
+    const dy = e.clientY - pointerDownPosRef.current.y;
+    const dist = Math.hypot(dx, dy);
+    const elapsed = performance.now() - pointerDownPosRef.current.time;
+    pointerDownPosRef.current = null;
+
+    // If moved > 6px or held longer than 450ms, user was orbiting or panning the camera
+    if (dist > 6 || elapsed > 450) {
+      return;
+    }
+
     const seat = getSeatFromPointer(e.clientX, e.clientY);
     if (seat) {
       const status = availability?.statuses[seat.id] ?? "available";
@@ -400,6 +438,17 @@ export function SeatMap3D({
   // Currently focused / previewed seat detail
   const activeSeat = auditorium.seats.find((s) => s.id === focusedSeatId) ?? hoveredSeat;
 
+  // Clamped tooltip coordinates so it stays within viewport
+  const clampedTooltipPos = useMemo(() => {
+    if (!hoverPosition || !containerRef.current) return null;
+    const width = containerRef.current.clientWidth || 800;
+    const height = containerRef.current.clientHeight || 560;
+    const halfWidth = 85;
+    const clampedX = Math.max(halfWidth + 12, Math.min(width - halfWidth - 12, hoverPosition.x));
+    const clampedY = Math.max(90, Math.min(height - 20, hoverPosition.y));
+    return { x: clampedX, y: clampedY };
+  }, [hoverPosition]);
+
   return (
     <div
       ref={containerRef}
@@ -410,6 +459,7 @@ export function SeatMap3D({
         ref={canvasRef}
         onPointerMove={handlePointerMove}
         onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
         className={cn(
           "absolute inset-0 w-full h-full outline-none",
           hoveredSeat ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
@@ -435,7 +485,7 @@ export function SeatMap3D({
                 ? "bg-gold-500 text-ink-950 font-bold"
                 : "text-ivory-300 hover:text-ivory-100 hover:bg-ink-800"
             )}
-            title="Overview isometric view"
+            title="Overview elevated isometric view"
           >
             <Compass className="w-3.5 h-3.5" />
             <span>Overview</span>
@@ -449,7 +499,7 @@ export function SeatMap3D({
                 ? "bg-gold-500 text-ink-950 font-bold"
                 : "text-ivory-300 hover:text-ivory-100 hover:bg-ink-800"
             )}
-            title="Top-down architectural plan"
+            title="Top-down architectural seating plan"
           >
             <Grid3X3 className="w-3.5 h-3.5" />
             <span>Top-Down</span>
@@ -463,7 +513,7 @@ export function SeatMap3D({
                 ? "bg-gold-500 text-ink-950 font-bold"
                 : "text-ivory-300 hover:text-ivory-100 hover:bg-ink-800"
             )}
-            title="Facing toward the screen"
+            title="Audience view from the cinema screen"
           >
             <Eye className="w-3.5 h-3.5" />
             <span>Screen-Facing</span>
@@ -498,16 +548,16 @@ export function SeatMap3D({
         </div>
       )}
 
-      {/* Floating 3D Hover Tooltip */}
-      {hoveredSeat && hoverPosition && cameraMode !== "seatView" && (
+      {/* Floating 3D Hover Tooltip with Clamped Coordinates */}
+      {hoveredSeat && clampedTooltipPos && cameraMode !== "seatView" && (
         <div
           className="absolute z-20 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-3 animate-in fade-in duration-150"
           style={{
-            left: `${hoverPosition.x}px`,
-            top: `${hoverPosition.y}px`,
+            left: `${clampedTooltipPos.x}px`,
+            top: `${clampedTooltipPos.y}px`,
           }}
         >
-          <div className="bg-ink-900/95 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-gold-500/40 shadow-2xl text-xs space-y-1 text-center min-w-[140px]">
+          <div className="bg-ink-900/95 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-gold-500/40 shadow-2xl text-xs space-y-1 text-center min-w-[150px]">
             <div className="font-bold text-ivory-50 text-sm font-mono flex items-center justify-center gap-1.5">
               <span>Seat {hoveredSeat.label}</span>
               <Badge
@@ -520,7 +570,11 @@ export function SeatMap3D({
                 }
                 className="text-[9px]"
               >
-                {hoveredSeat.category?.value === "premium" ? "Premium" : "Standard"}
+                {hoveredSeat.category?.value === "premium"
+                  ? "Premium"
+                  : hoveredSeat.kind === "wheelchair-space"
+                  ? "Accessible"
+                  : "Standard"}
               </Badge>
             </div>
 
@@ -530,7 +584,7 @@ export function SeatMap3D({
 
             <div className="text-[10px] text-ivory-400">
               {availability?.statuses[hoveredSeat.id] === "available" ? (
-                <span className="text-sage-400 font-medium">Available · Click to select</span>
+                <span className="text-emerald-400 font-medium">Available · Click to select</span>
               ) : (
                 <span className="text-rose-400 font-medium">Sold / Blocked</span>
               )}
@@ -544,7 +598,7 @@ export function SeatMap3D({
         {activeSeat && cameraMode !== "seatView" ? (
           <div className="pointer-events-auto bg-ink-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-ink-800 shadow-xl flex items-center gap-3">
             <span className="text-xs text-ivory-300 font-medium font-mono">
-              Seat <strong className="text-ivory-50">{activeSeat.label}</strong>
+              Seat <strong className="text-ivory-50">{activeSeat.label}</strong> (Row {activeSeat.row})
             </span>
 
             <Button
@@ -565,7 +619,7 @@ export function SeatMap3D({
         <button
           onClick={() => handleSetPreset("overview")}
           className="pointer-events-auto bg-ink-900/90 hover:bg-ink-800 text-ivory-300 hover:text-ivory-100 p-2 rounded-xl border border-ink-800 transition-colors shadow-md text-xs flex items-center gap-1.5"
-          title="Reset camera framing"
+          title="Reset camera framing to overview"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Reset</span>

@@ -161,24 +161,24 @@ export function SeatMap({
             const price = seatPrice(seat, pricing);
 
             // Styling determination
-            let fillColor = "#27272b"; // standard available
-            let strokeColor = "#4a4a52";
+            let fillColor = "#363842"; // standard available clearly readable
+            let strokeColor = "#525463";
             let strokeWidth = 0.04;
 
             if (isPremium) {
-              fillColor = "#3d2d14"; // warm dark amber
-              strokeColor = "#b8955a";
+              fillColor = "#66421d"; // warm rich amber
+              strokeColor = "#c4a159";
             }
             if (isWheelchair) {
-              fillColor = "#0d2b38";
+              fillColor = "#1a4659";
               strokeColor = "#38bdf8";
             }
             if (isUnavailable) {
-              fillColor = "#161618";
-              strokeColor = "#27272b";
+              fillColor = "#1a1a1e";
+              strokeColor = "#26262c";
             }
             if (isHighlighted) {
-              fillColor = "#78581e";
+              fillColor = "#a67324";
               strokeColor = "#ecdcb6";
               strokeWidth = 0.08;
             }

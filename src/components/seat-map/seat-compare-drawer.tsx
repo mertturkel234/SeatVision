@@ -80,6 +80,7 @@ export function SeatCompareModal({
                 src="/images/hero-auditorium.jpg"
                 alt={`Seat ${seatA.label}`}
                 fill
+                sizes="(max-width: 768px) 50vw, 300px"
                 className="object-cover opacity-80"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ink-950/80 via-transparent to-transparent" />
@@ -157,6 +158,7 @@ export function SeatCompareModal({
                 src="/images/hero-auditorium.jpg"
                 alt={`Seat ${seatB.label}`}
                 fill
+                sizes="(max-width: 768px) 50vw, 300px"
                 className="object-cover opacity-80"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ink-950/80 via-transparent to-transparent" />

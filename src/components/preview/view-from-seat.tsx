@@ -179,6 +179,7 @@ export function ViewFromSeat({
               src="/images/hero-auditorium.jpg"
               alt={`View from seat ${seat.label}`}
               fill
+              sizes="(max-width: 1024px) 100vw, 800px"
               className="object-cover brightness-95 contrast-105"
               priority
             />

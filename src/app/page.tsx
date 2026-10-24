@@ -39,6 +39,7 @@ export default async function HomePage() {
             src="/images/hero-auditorium.jpg"
             alt="SeatVision Empty Cinema Auditorium"
             fill
+            sizes="100vw"
             className="object-cover opacity-35 brightness-75 scale-105"
             priority
           />
@@ -132,6 +133,7 @@ export default async function HomePage() {
                         src={movie.posterUrl}
                         alt={movie.title}
                         fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         className="object-cover group-hover:scale-105 transition-transform duration-300 brightness-95"
                       />
                     )}

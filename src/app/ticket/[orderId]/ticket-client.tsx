@@ -94,6 +94,7 @@ export function TicketClient({ orderId }: { orderId: string }) {
               src={movie.posterUrl}
               alt={movie.title}
               fill
+              sizes="(max-width: 768px) 100vw, 680px"
               className="object-cover opacity-60 brightness-90"
               priority
             />
