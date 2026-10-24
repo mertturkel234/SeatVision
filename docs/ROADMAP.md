@@ -18,7 +18,19 @@
 - [x] Created B2B Cinema Operator Dashboard (audit coordinates, surveyed geometry, panorama status).
 - [x] Authored 46 automated unit tests with 100% pass rate. Verified production build.
 
-## Phase 2: Cinema Integration & Live Ingest (Next Planned Milestone)
+## Phase 2: Interactive 3D Cinema Spatial Engine (Completed)
+- [x] Client-side Three.js & WebGL architectural auditorium visualization.
+- [x] Stepped stadium seating platforms (32cm elevation rake per row).
+- [x] Curved cinema screen, acoustic side walls, LED aisle step tread lighting.
+- [x] Individual 3D cinema seats with cushions, armrests, cup holders, and headrests.
+- [x] Interactive Raycasting selection & real-time 3D floating HUD tooltip.
+- [x] OrbitControls with underground navigation prevention.
+- [x] Camera view presets: Overview (isometric), Top-Down (plan), Screen-Facing, and Reset.
+- [x] "Bu Koltuktan Gör" (View From Seat) eye-level camera animation and sightline inspection.
+- [x] Seamless 2D/3D toggle and automatic WebGL capability fallback.
+- [x] 50 automated tests in Vitest.
+
+## Phase 3: Cinema Integration & Live Ingest (Next Planned Milestone)
 - [ ] Implement `LiveRepository` connector to integrate with POS/ticketing APIs (Vista, RTS, Veezi).
 - [ ] Webhook receiver for live seat lock/release inventory updates.
 - [ ] Multi-tenant cinema operator authentication (SSO / role-based permissions).

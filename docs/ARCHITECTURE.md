@@ -8,7 +8,8 @@ SeatVision is built as a modular Next.js application (App Router, React 19, Type
 flowchart TD
     subgraph UI ["User Interface (React / Tailwind)"]
         Home["/ (Landing Page)"]
-        Screening["/screenings/[id] (Map & SeatMatch)"]
+        Screening["/screenings/[id] (Map, 3D WebGL & SeatMatch)"]
+        SeatMap3D["components/seat-map-3d (Three.js WebGL Spatial Engine)"]
         Cart["/cart (Demo Concessions & Checkout)"]
         Ticket["/ticket/[orderId] (Cinematic Pass)"]
         Discover["/discover (Rule-based Matcher)"]
@@ -18,6 +19,7 @@ flowchart TD
 
     subgraph Domain ["Domain Logic (Pure TypeScript, Zero External Dependencies)"]
         Geometry["geometry.ts (Viewing angles, FOV, distance)"]
+        Geometry3D["geometry-3d.ts (3D coordinates, stepped rake, eye-level camera)"]
         Adjacency["adjacency.ts (Physical neighbor graph)"]
         SeatMatch["seatmatch.ts (Scoring, explanation, contiguous blocks)"]
         Pricing["pricing.ts (Minor-unit arithmetic)"]

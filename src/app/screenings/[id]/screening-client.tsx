@@ -14,12 +14,16 @@ import {
   Sparkles,
   ChevronRight,
   Info,
+  Box,
+  Grid3X3,
 } from "lucide-react";
 import type { Seat } from "@/lib/domain/types";
 import type { ScreeningBundle } from "@/lib/data/repository";
 import { formatDay, formatTime, formatDuration, FORMAT_SHORT } from "@/lib/format";
 import { seatPrice, formatMoneyOrUnknown, sumKnownMoney } from "@/lib/domain/pricing";
+import { cn } from "@/lib/cn";
 import { SeatMap } from "@/components/seat-map/seat-map";
+import { SeatMap3DContainer } from "@/components/seat-map-3d";
 import { SeatLegend } from "@/components/seat-map/seat-legend";
 import { ViewFromSeat } from "@/components/preview/view-from-seat";
 import { SeatCompareModal } from "@/components/seat-map/seat-compare-drawer";
@@ -40,6 +44,8 @@ export function ScreeningClient({ bundle }: { bundle: ScreeningBundle }) {
   const [compareSeats, setCompareSeats] = useState<{ seatA: Seat; seatB: Seat } | null>(null);
   // Seats highlighted temporarily (e.g. hovering over a SeatMatch card)
   const [highlightedSeatIds, setHighlightedSeatIds] = useState<string[]>([]);
+  // View mode: 3D interactive auditorium or 2D seating chart fallback
+  const [viewMode, setViewMode] = useState<"3D" | "2D">("3D");
 
   // Restore existing selections from session storage if any
   useEffect(() => {
@@ -212,35 +218,90 @@ export function ScreeningClient({ bundle }: { bundle: ScreeningBundle }) {
         {/* Left Column: Map and Preview Drawer */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-6">
           {/* Seating Map Card */}
-          <div className="card bg-ink-900 border-ink-800 p-6 flex flex-col items-center shadow-xl">
-            <div className="w-full flex items-center justify-between mb-4 border-b border-ink-800 pb-3">
+          <div className="card bg-ink-900 border-ink-800 p-6 flex flex-col items-center shadow-xl space-y-4">
+            <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-ink-800 pb-3">
               <div>
-                <h3 className="text-sm font-semibold text-ivory-200">Interactive Auditorium Map</h3>
-                <p className="text-[11px] text-ivory-500">
-                  Select a seat to inspect geometry and view angle preview.
+                <h3 className="text-sm font-semibold text-ivory-100 flex items-center gap-2">
+                  <span>Interactive Auditorium</span>
+                  <Badge variant="gold" className="text-[10px]">
+                    {viewMode === "3D" ? "3D Spatial Engine" : "2D Chart"}
+                  </Badge>
+                </h3>
+                <p className="text-[11px] text-ivory-400">
+                  {viewMode === "3D"
+                    ? "Orbit, zoom, and click individual 3D cinema seats to inspect sightlines."
+                    : "Select a seat to inspect geometry and view angle preview."}
                 </p>
               </div>
 
-              {selectedSeatIds.length > 0 && (
-                <button
-                  onClick={() => saveCart([])}
-                  className="text-xs text-ivory-400 hover:text-gold-300 flex items-center gap-1 transition-colors"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  Clear Selection
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {/* 2D / 3D Mode Switch Pill */}
+                <div className="flex items-center gap-1 bg-ink-850 p-1 rounded-xl border border-ink-750 text-xs">
+                  <button
+                    onClick={() => setViewMode("3D")}
+                    className={cn(
+                      "px-3 py-1 rounded-lg font-medium transition-colors flex items-center gap-1.5",
+                      viewMode === "3D"
+                        ? "bg-gold-500 text-ink-950 font-bold shadow-sm"
+                        : "text-ivory-300 hover:text-ivory-100 hover:bg-ink-800"
+                    )}
+                  >
+                    <Box className="w-3.5 h-3.5" />
+                    <span>3D View</span>
+                  </button>
+
+                  <button
+                    onClick={() => setViewMode("2D")}
+                    className={cn(
+                      "px-3 py-1 rounded-lg font-medium transition-colors flex items-center gap-1.5",
+                      viewMode === "2D"
+                        ? "bg-gold-500 text-ink-950 font-bold shadow-sm"
+                        : "text-ivory-300 hover:text-ivory-100 hover:bg-ink-800"
+                    )}
+                  >
+                    <Grid3X3 className="w-3.5 h-3.5" />
+                    <span>2D Map</span>
+                  </button>
+                </div>
+
+                {selectedSeatIds.length > 0 && (
+                  <button
+                    onClick={() => saveCart([])}
+                    className="text-xs text-ivory-400 hover:text-gold-300 flex items-center gap-1 transition-colors pl-2"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
 
-            <SeatMap
-              auditorium={auditorium}
-              availability={availability}
-              pricing={pricing}
-              selectedSeatIds={selectedSeatIds}
-              focusedSeatId={previewSeat?.id}
-              highlightedSeatIds={highlightedSeatIds}
-              onSelectSeat={handleSelectSeat}
-            />
+            {/* Map Display: 3D Scene or 2D Chart */}
+            <div className="w-full">
+              {viewMode === "3D" ? (
+                <SeatMap3DContainer
+                  auditorium={auditorium}
+                  availability={availability}
+                  pricing={pricing}
+                  selectedSeatIds={selectedSeatIds}
+                  focusedSeatId={previewSeat?.id}
+                  highlightedSeatIds={highlightedSeatIds}
+                  onSelectSeat={handleSelectSeat}
+                  onRequestViewFromSeat={(seat) => setPreviewSeat(seat)}
+                  onFallbackTo2D={() => setViewMode("2D")}
+                />
+              ) : (
+                <SeatMap
+                  auditorium={auditorium}
+                  availability={availability}
+                  pricing={pricing}
+                  selectedSeatIds={selectedSeatIds}
+                  focusedSeatId={previewSeat?.id}
+                  highlightedSeatIds={highlightedSeatIds}
+                  onSelectSeat={handleSelectSeat}
+                />
+              )}
+            </div>
 
             <SeatLegend />
           </div>

@@ -4,7 +4,14 @@ SeatVision is an intelligent cinema seat discovery, view preview, and recommenda
 
 ## 🌟 Implemented Features
 
-1. **SeatMatch™ — Smart Seat Assistant:**
+1. **Interactive 3D Cinema Auditorium:**
+   - Real-time Three.js WebGL visualization of the auditorium featuring stepped stadium platforms, acoustic walls, glowing curved cinema screen, and aisle step lighting.
+   - Individual 3D seats with ergonomic cushions, armrests, and cup holders.
+   - Camera view presets: Overview (isometric), Top-Down (architectural plan), and Screen-Facing.
+   - "Bu Koltuktan Gör" (View From This Seat) smooth eye-level camera animation for inspecting real screen sightlines and FOV.
+   - Accessible 2D seating chart toggle with automatic WebGL failure fallback.
+
+2. **SeatMatch™ — Smart Seat Assistant:**
    - Deterministic, explainable recommendation algorithm scoring viewing angle, distance from screen, auditorium zone, and verified premium category.
    - Transparent explanations breaking down the score into factor weights rather than an arbitrary blackbox number.
    - Explains data limitations and adjusts confidence (High / Moderate / Low).
