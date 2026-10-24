@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { getRepository, loadScreeningBundle } from "@/lib/data";
 import { ScreeningClient } from "./screening-client";
 
+export const instant = false;
+
 export function generateStaticParams() {
   const repo = getRepository();
   return repo.listScreenings().then((screenings) => screenings.map((s) => ({ id: s.id })));

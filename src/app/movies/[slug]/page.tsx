@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataBadge } from "@/components/ui/data-badge";
 
+export const instant = false;
+
 export function generateStaticParams() {
   const repo = getRepository();
   return repo.listMovies().then((movies) => movies.map((m) => ({ slug: m.slug })));

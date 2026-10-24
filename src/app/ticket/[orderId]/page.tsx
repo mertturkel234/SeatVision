@@ -1,5 +1,7 @@
 import { TicketClient } from "./ticket-client";
 
+export const instant = false;
+
 export function generateStaticParams() {
   return [{ orderId: "demo" }];
 }
